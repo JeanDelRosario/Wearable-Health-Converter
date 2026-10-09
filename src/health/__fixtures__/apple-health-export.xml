@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="nl_NL">
+  <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Watch &amp; Phone" sourceVersion="10.1" unit="ms" creationDate="2026-01-02 10:00:00 +0100" startDate="2026-01-02 10:00:00 +0100" endDate="2026-01-02 10:00:05 +0100" value="42" device="&lt;HKDevice: Watch&gt;">
+    <MetadataEntry key="HKMetadataKeySyncIdentifier" value="synthetic-only"/>
+  </Record>
+  <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" sourceVersion="18" unit="count" startDate="2026-01-03 09:00:00 +0100" endDate="2026-01-03 09:02:00 +0100" value="202"/>
+  <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Watch" startDate="2026-01-04 23:00:00 +0100" endDate="2026-01-05 07:00:00 +0100" value="HKCategoryValueSleepAnalysisAsleepCore"/>
+  <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Scale" startDate="2026-01-05 08:00:00 +0100" endDate="2026-01-05 08:00:00 +0100" value="70" unit="kg"/>
+</HealthData>

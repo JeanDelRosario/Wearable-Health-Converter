@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Local Apple Health and Google/Fitbit converter. No uploads." />
+  <title>Wearable Health Converter</title>
+</head>
+<body>
+  <main class="page">
+    <section id="language-choice">
+      <h1>Choose your language / Kies uw taal</h1>
+      <label for="language-select">Language / Taal</label>
+      <select id="language-select"><option value="" selected disabled>Choose / Kies</option><option value="nl">Nederlands</option><option value="en">English</option></select>
+    </section>
+    <div id="converter-content" hidden>
+      <h1>Wearable Health Converter</h1>
+      <p id="privacy-note" class="hint"></p>
+      <form id="converter-form">
+        <label id="file-label" for="file"></label>
+        <input id="file" name="file" type="file" accept=".zip,.xml,application/zip,text/xml,application/xml" required />
+        <fieldset>
+          <legend id="period-label"></legend>
+          <div class="date-fields">
+            <label for="start-date"><span id="start-label"></span><input id="start-date" type="date" readonly aria-readonly="true" /></label>
+            <label for="end-date"><span id="end-label"></span><input id="end-date" type="date" required /></label>
+          </div>
+          <p class="hint" id="period-hint"></p>
+          <label id="zone-label" for="time-zone"></label>
+          <select id="time-zone" required></select>
+          <p class="hint" id="zone-hint"></p>
+        </fieldset>
+        <fieldset id="data-types-fieldset" class="data-types-locked">
+          <legend><span id="data-label"></span> <span id="type-lock-label"></span></legend>
+          <div id="type-options"></div>
+          <p class="hint" id="lock-hint"></p>
+        </fieldset>
+        <p class="hint" id="temperature-hint"></p>
+        <div class="actions"><button id="process" type="submit"></button><button id="cancel" type="button" hidden></button></div>
+      </form>
+      <section aria-live="polite" aria-atomic="true">
+        <h2 id="status-heading"></h2>
+        <p id="status"></p>
+        <progress id="progress" max="100" value="0" hidden></progress>
+      </section>
+      <section id="results" hidden><h2 id="results-heading"></h2><p id="platform"></p><ul id="coverage"></ul><ul id="warnings" class="warnings"></ul></section>
+      <button id="download" type="button" disabled></button>
+    </div>
+  </main>
+  <script type="module" src="/src/app/main.ts"></script>
+</body>
+</html>

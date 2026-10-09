@@ -1,0 +1,12 @@
+node_modules/
+dist/
+outputs/
+work/
+*.tsbuildinfo
+
+# Private wearable exports and participant outputs
+upload/
+uploads/
+.qa/
+*.csv
+*.zip
