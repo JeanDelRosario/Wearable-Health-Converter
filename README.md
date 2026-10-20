@@ -1,6 +1,6 @@
 # Wearable Health Converter
 
-Convert Apple Health XML/ZIP and Google/Fitbit Takeout ZIP exports into a daily CSV covering 28 days. Supports sleep duration, steps, HRV, resting heart rate, nightly skin/wrist temperature and temperature deviation where a baseline is available. Garmin, WHOOP and Oura are planned, not implemented.
+Convert Apple Health XML/ZIP, Google/Fitbit Takeout ZIP and Garmin account-export ZIP files into a daily CSV covering 28 days. Supports sleep duration, steps, HRV, resting heart rate, nightly skin/wrist temperature and temperature deviation where supplied or calculable from an exported baseline. WHOOP and Oura are planned, not implemented.
 
 Based on [Damianmts/AppleHealthConverter](https://github.com/Damianmts/AppleHealthConverter).
 
@@ -14,7 +14,7 @@ CSV headers and labels are always English:
 category,date,value,unit,source,measurement_type
 ```
 
-Each selected metric has one row per day: all six metrics produce 168 rows. Missing values stay blank; measured zeroes remain zero. Source filenames and metric definitions are preserved for traceability. Apple HRV is SDNN; Fitbit HRV is RMSSD, so they should not be treated as interchangeable.
+Each selected metric has one row per day: all six metrics produce 168 rows. Missing values stay blank; measured zeroes remain zero. Source datasets and metric definitions are preserved for traceability. Garmin source labels omit account identifiers. Apple HRV is SDNN; Fitbit HRV is RMSSD; Garmin's health-status JSON does not specify its HRV calculation method. Do not assume these summaries are interchangeable.
 
 Downloads are named `wearable-health-<random-id>.csv`. The cryptographically random 128-bit ID identifies one export, not a participant. Saving the same result again keeps its ID; processing again generates a new one. IDs are not derived from health data or stored between sessions. A random filename does not make the health measurements anonymous.
 
@@ -43,6 +43,7 @@ Deploy the `dist` folder to a static host such as Netlify. Edit the source and r
 | `src/workers/healthProcessor.worker.ts` | Background processing and progress messages |
 | `src/health/processing.ts` | Detect format and coordinate imports |
 | `src/health/googleHealthImporter.ts` | Google/Fitbit CSV and JSON mappings |
+| `src/health/garminHealthImporter.ts` | Garmin daily-summary JSON mappings |
 | `src/health/xmlRecordParser.ts`, `dailySummary.ts` | Apple records and daily aggregation |
 | `src/health/zipReader.ts`, `streamingParsers.ts` | Selective ZIP reading and incremental parsing |
 | `src/health/csv.ts`, `measurementTypes.ts`, `timeZone.ts` | Output schema, metrics and date grouping |
@@ -54,6 +55,8 @@ To add a platform, map its exports to the shared daily row schema, retain proven
 
 Google daily tables take precedence over legacy Fitbit summaries for the whole metric. Disagreements generate warnings; older values are not added or used to fill gaps. Conflicting records can leave affected daily totals blank. Legacy Fitbit step timestamps are interpreted as UTC with a warning. Daily summaries retain their exported date labels; timestamped steps use the selected timezone.
 
+Garmin imports `UDSFile`, `sleepData` and `healthStatusData` JSON arrays from the `DI_CONNECT` folders. Steps use `totalSteps`; daily resting heart rate uses `currentDayRestingHeartRate`, without substituting `restingHeartRate` or overnight `HR`. Sleep sums deep, light and REM seconds plus distinct, nonoverlapping naps, excluding awake and unmeasurable time. Missing REM is treated as zero for older exports with deep/light totals. Unconfirmed sleep is skipped; edited durations that exceed timestamp windows are retained with a warning. HRV uses the provided overnight `HRV` summary. `SKIN_TEMP_C` is an exported temperature deviation, not an absolute temperature; Nightly temperature stays blank. Baseline limits are not used to reconstruct absolute temperature. Duplicate values are counted once; conflicts leave affected values blank. Daily calendar labels are preserved. Profile files, workout/activity data and nested raw FIT archives are skipped; standalone FIT files are not supported.
+
 Apple steps retain the original Watch-priority approximation with a six-minute guard. Apple Watch temperature uses `HKQuantityTypeIdentifierAppleSleepingWristTemperature`, averaged by sample end date and exported in Celsius to two decimal places; Fahrenheit samples are converted first. Body-temperature records are excluded. Temperature is skin/wrist temperature, not core body temperature. No baseline is inferred; Apple deviation stays blank.
 
-All 42 synthetic test cases passed through a direct Node assertion harness, including Apple Celsius temperature with metadata and progress within large zipped XML. The bundled worker's temperature results matched an independent XML calculation on a private multi-gigabyte Apple export. The standard Vitest runner stalled during teardown in the restricted development environment; run `npm test` locally. Google results previously matched an independent calculation. Compiled-interface checks previously confirmed identical English CSVs in both interface languages. Actual Safari, Chrome, Edge and Firefox testing, and comparisons against wearable apps, remain necessary.
+All 52 synthetic test cases passed through a direct Node assertion harness, including Garmin mappings, duplicates, overlaps, edited sleep, missing values and mixed-platform rejection. The bundled worker's Garmin results matched an independent JSON calculation on a private account export. Its Apple temperature results matched an independent XML calculation on a private multi-gigabyte export. The standard Vitest runner stalled during teardown in the restricted development environment; run `npm test` locally. Google results previously matched an independent calculation. Compiled-interface checks previously confirmed identical English CSVs in both interface languages. Actual Safari, Chrome, Edge and Firefox testing, and comparisons against wearable apps, remain necessary.

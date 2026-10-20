@@ -71,6 +71,31 @@ describe('end-to-end file processing', () => {
     expect(find(result, 'Resting heart rate').value).toBe('65.451');
   });
 
+  it('detects wrapped Garmin exports and skips personal files and nested FIT archives', async () => {
+    const zip = zipSync({
+      'wrapper/DI_CONNECT/DI-Connect-Aggregator/UDSFile_2026-07-01_2026-10-09.json': strToU8(JSON.stringify([{ calendarDate: '2026-09-20', totalSteps: 456, currentDayRestingHeartRate: 55 }])),
+      'wrapper/customer_data/customer.json': strToU8('{invalid'),
+      'wrapper/DI_CONNECT/DI-Connect-Uploaded-Files/UploadedFiles_Part1.zip': strToU8('not a zip')
+    });
+    const result = await processHealthFile(new File([zip], 'Garmin.zip'), options);
+    expect(result.platform).toBe('Garmin');
+    expect(result.rows).toHaveLength(168);
+    expect(find(result, 'Steps').value).toBe('456');
+    expect(find(result, 'Resting heart rate').value).toBe('55');
+    expect(result.rows.every(r => !r.source?.includes('wrapper'))).toBe(true);
+  });
+
+  it('rejects Garmin mixed with Apple or Google and archives without supported daily summaries', async () => {
+    const garminEntry = { 'DI_CONNECT/DI-Connect-Aggregator/UDSFile_2026-07-01_2026-10-09.json': strToU8('[]') };
+    const otherEntries: Record<string, Uint8Array>[] = [{ 'export.xml': strToU8(xml) }, { 'Google Health/Physical Activity_GoogleData/daily_resting_heart_rate.csv': strToU8('timestamp,beats per minute\n') }];
+    for (const other of otherEntries) {
+      const zip = zipSync({ ...garminEntry, ...other });
+      await expect(processHealthFile(new File([zip], 'mixed.zip'), options)).rejects.toThrow('multiple wearable platforms');
+    }
+    const zip = zipSync({ 'private.json': strToU8('{}') });
+    await expect(processHealthFile(new File([zip], 'unsupported.zip'), options)).rejects.toThrow('No supported');
+  });
+
   it('rejects malformed files, invalid date windows, empty files and mixed-platform archives', async () => {
     await expect(processHealthFile(new File(['not XML'], 'export.xml'), options)).rejects.toThrow('geen Apple');
     await expect(processHealthFile(new File([], 'export.xml'), options)).rejects.toThrow('empty');
