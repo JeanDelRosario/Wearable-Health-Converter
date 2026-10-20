@@ -33,6 +33,9 @@ export async function processHealthFile(file: File, options: ProcessingOptions,
   let appleFound = false;
   let matched = 0;
   let xmlFinished = false;
+  let xmlBytesRead = 0;
+  let xmlTotalBytes = file.size;
+  let lastXmlPercent = -1;
   const appleConsumer = (data: Uint8Array, final: boolean) => {
     parser.push(decoder.decode(data, { stream: !final }), (record) => {
       addRecordToDailySummary(summary, record); matched++;
@@ -42,6 +45,12 @@ export async function processHealthFile(file: File, options: ProcessingOptions,
       return typeAndDateMatches(key, key === 'sleepAnalysis' || key === 'wristTemperature' ? end || start : start, options);
     });
     if (final) { parser.finish(); xmlFinished = true; }
+    xmlBytesRead += data.length;
+    const percent = Math.floor(xmlBytesRead / xmlTotalBytes * 100);
+    if (percent !== lastXmlPercent || final) {
+      lastXmlPercent = percent;
+      report({ phase: 'parsing', bytesRead: xmlBytesRead, totalBytes: xmlTotalBytes, recordsMatched: matched });
+    }
   };
   const isZip = /\.zip$/i.test(file.name) || file.type === 'application/zip';
   if (isZip) {
@@ -52,13 +61,13 @@ export async function processHealthFile(file: File, options: ProcessingOptions,
       let consumer: ((bytes: Uint8Array, final: boolean) => void) | undefined;
       if (/(?:^|\/)export\.xml$/i.test(path)) {
         if (appleFound) throw new Error('Multiple export.xml files found. Select one export.xml directly.');
-        appleFound = true; consumer = appleConsumer;
+        appleFound = true; xmlTotalBytes = entry.originalSize; consumer = appleConsumer;
       } else consumer = google.consumerForEntry(path);
       if (consumer) {
         try { await consumeZipEntry(file, entry, consumer, isCancelled); }
         catch (e) { throw new Error(`${path}: ${e instanceof Error ? e.message : String(e)}`); }
       }
-      report({ phase: 'reading', bytesRead: index + 1, totalBytes: entries.length, recordsMatched: matched + google.recordsMatched });
+      if (!appleFound) report({ phase: 'reading', bytesRead: index + 1, totalBytes: entries.length, recordsMatched: matched + google.recordsMatched });
     }
   } else {
     if (!/\.xml$/i.test(file.name)) throw new Error('Choose an Apple XML or an Apple/Google/Fitbit ZIP export.');
@@ -68,7 +77,6 @@ export async function processHealthFile(file: File, options: ProcessingOptions,
       if (isCancelled()) throw new Error('Processing cancelled.');
       const bytes = new Uint8Array(await file.slice(offset, offset + chunkSize).arrayBuffer());
       appleConsumer(bytes, offset + bytes.length === file.size);
-      report({ phase: 'parsing', bytesRead: offset + bytes.length, totalBytes: file.size, recordsMatched: matched });
     }
   }
   if (!file.size) throw new Error('The selected file is empty.');

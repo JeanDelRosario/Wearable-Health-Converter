@@ -6,7 +6,7 @@ Based on [Damianmts/AppleHealthConverter](https://github.com/Damianmts/AppleHeal
 
 ## Use
 
-Open the built `dist/index.html` in a desktop browser, or serve it on a static HTTPS host. Select your export, the period's end date and the wearer's timezone. Click Process, check coverage and warnings, then save the CSV. Hold the Measurements box for five seconds to change the selection.
+Open the built `dist/index.html` in a desktop browser, or serve it on a static HTTPS host. Select your export, an end date covered by its data and the wearer's timezone. Click Process, check coverage and warnings, then save the CSV. Large Apple ZIPs report progress while their XML is processed. Hold the Measurements box for five seconds to change the selection.
 
 CSV headers and labels are always English:
 
@@ -54,6 +54,6 @@ To add a platform, map its exports to the shared daily row schema, retain proven
 
 Google daily tables take precedence over legacy Fitbit summaries for the whole metric. Disagreements generate warnings; older values are not added or used to fill gaps. Conflicting records can leave affected daily totals blank. Legacy Fitbit step timestamps are interpreted as UTC with a warning. Daily summaries retain their exported date labels; timestamped steps use the selected timezone.
 
-Apple steps retain the original Watch-priority approximation with a six-minute guard. Temperature is skin/wrist temperature, not core body temperature. No baseline is inferred; Apple deviation stays blank. Apple temperature has only been validated with synthetic records.
+Apple steps retain the original Watch-priority approximation with a six-minute guard. Apple Watch temperature uses `HKQuantityTypeIdentifierAppleSleepingWristTemperature`, averaged by sample end date and exported in Celsius to two decimal places; Fahrenheit samples are converted first. Body-temperature records are excluded. Temperature is skin/wrist temperature, not core body temperature. No baseline is inferred; Apple deviation stays blank.
 
-The build and 42 test cases passed through a direct Node assertion harness. The standard Vitest runner stalled in the restricted development environment; run `npm test` locally. Google results matched an independent calculation. Compiled-interface checks confirmed identical English CSVs in both interface languages. Actual Safari, Chrome, Edge and Firefox testing, and comparisons against wearable apps, remain necessary.
+All 42 synthetic test cases passed through a direct Node assertion harness, including Apple Celsius temperature with metadata and progress within large zipped XML. The bundled worker's temperature results matched an independent XML calculation on a private multi-gigabyte Apple export. The standard Vitest runner stalled during teardown in the restricted development environment; run `npm test` locally. Google results previously matched an independent calculation. Compiled-interface checks previously confirmed identical English CSVs in both interface languages. Actual Safari, Chrome, Edge and Firefox testing, and comparisons against wearable apps, remain necessary.

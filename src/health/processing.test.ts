@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { zipSync, strToU8 } from 'fflate';
 import { processHealthFile } from './processing';
 import { MEASUREMENT_TYPES } from './measurementTypes';
-import type { ProcessingOptions } from './models';
+import type { ProcessingOptions, ProgressUpdate } from './models';
 
 const options: ProcessingOptions = { selectedTypes: Object.keys(MEASUREMENT_TYPES) as ProcessingOptions['selectedTypes'], startDate: '2026-08-24', endDate: '2026-09-20', timeZone: 'Europe/Amsterdam' };
 const xml = `<HealthData>
@@ -36,6 +36,29 @@ describe('end-to-end file processing', () => {
     const zip = zipSync({ 'apple_health_export/export.xml': strToU8(large), 'unrelated/not-a-json.json': strToU8('{invalid') }, { level: 0 });
     const result = await processHealthFile(new File([zip], 'Apple.zip'), options);
     expect(find(result, 'HRV').value).toBe('40');
+  });
+
+  it('imports Celsius wrist temperature with Apple metadata and reports progress within a large zipped XML', async () => {
+    const temperatureXml = `<HealthData locale="nl_NL">${'<!-- padding -->'.repeat(20_000)}
+<Record type="HKQuantityTypeIdentifierAppleSleepingWristTemperature" sourceName="Apple Watch" sourceVersion="12.0" device="&lt;HKDevice: Synthetic Watch&gt;" unit="degC" startDate="2026-09-19 23:00:00 +0200" endDate="2026-09-20 07:00:00 +0200" value="35.8">
+  <MetadataEntry key="HKMetadataKeySyncIdentifier" value="synthetic-only"/>
+</Record>
+<Record type="HKQuantityTypeIdentifierAppleSleepingWristTemperature" unit="degC" startDate="2026-09-20 08:00:00 +0200" endDate="2026-09-20 09:00:00 +0200" value="36.2"/>
+<Record type="HKQuantityTypeIdentifierBodyTemperature" unit="degC" startDate="2026-09-20 10:00:00 +0200" endDate="2026-09-20 10:00:00 +0200" value="37.5"/>
+</HealthData>`;
+    const bytes = strToU8(temperatureXml);
+    const zip = zipSync({ 'apple_health_export/Export.xml': bytes, 'apple_health_export/export_cda.xml': strToU8('not parsed') }, { level: 0 });
+    const updates: ProgressUpdate[] = [];
+    const result = await processHealthFile(new File([zip], 'Apple.zip'), options, (p) => updates.push(p));
+    expect(find(result, 'Nightly temperature')).toMatchObject({ value: '36.00', unit: '°C', source: 'Apple Health' });
+    expect(find(result, 'Nightly temperature', '2026-09-19').value).toBe('');
+    expect(find(result, 'Nightly temperature').measurementType).toBe('sleeping_wrist_temperature;sample_mean;sample_end_date');
+    expect(find(result, 'Temperature deviation').value).toBe('');
+    expect(result.recordsMatched).toBe(2);
+    expect(updates.some((p) => p.bytesRead > 0 && p.bytesRead < p.totalBytes)).toBe(true);
+    expect(updates.every((p) => p.phase === 'parsing' && p.totalBytes === bytes.length)).toBe(true);
+    expect(updates.at(-1)?.bytesRead).toBe(bytes.length);
+    expect(updates.every((p, index) => index === 0 || p.bytesRead >= updates[index - 1].bytesRead)).toBe(true);
   });
 
   it('detects wrapped Google archives and does not parse unrelated personal files', async () => {
