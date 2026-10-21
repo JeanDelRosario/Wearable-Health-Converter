@@ -100,6 +100,22 @@ describe('end-to-end file processing', () => {
     await expect(processHealthFile(new File([mixed], 'mixed.zip'), options)).rejects.toThrow('multiple wearable platforms');
   });
 
+  it('detects WHOOP and ignores journals, workouts and macOS resource forks', async () => {
+    const whoop = { 'wrapper/physiological_cycles.csv': strToU8('Cycle start time,Cycle timezone,Sleep onset,Wake onset,Resting heart rate (bpm),Heart rate variability (ms),Skin temp (celsius)\n2026-09-19 22:00:00,UTC+02:00,2026-09-19 22:00:00,2026-09-20 06:00:00,55,60,33.2\n') };
+    const zip = zipSync({ ...whoop, 'journal_entries.csv': strToU8('private invalid csv'), 'workouts.csv': strToU8('private invalid csv'), '__MACOSX/._physiological_cycles.csv': new Uint8Array([255]) });
+    const result = await processHealthFile(new File([zip], 'WHOOP.zip'), options);
+    expect(result.platform).toBe('WHOOP');
+    expect(result.rows).toHaveLength(168);
+    expect(find(result, 'Nightly temperature').value).toBe('33.2');
+    const others: Record<string, Uint8Array>[] = [
+      { 'export.xml': strToU8(xml) },
+      { 'Google Health/Physical Activity_GoogleData/daily_resting_heart_rate.csv': strToU8('timestamp,beats per minute\n') },
+      { 'DI_CONNECT/DI-Connect-Aggregator/UDSFile_2026-07-01_2026-10-09.json': strToU8('[]') },
+      { 'com.samsung.shealth.step_daily_trend.csv': strToU8('com.samsung.shealth.step_daily_trend,7006011,6\nday_time,source_type,count\n') }
+    ];
+    for (const other of others) await expect(processHealthFile(new File([zipSync({ ...whoop, ...other })], 'mixed.zip'), options)).rejects.toThrow('multiple wearable platforms');
+  });
+
   it('rejects Garmin mixed with Apple or Google and archives without supported daily summaries', async () => {
     const garminEntry = { 'DI_CONNECT/DI-Connect-Aggregator/UDSFile_2026-07-01_2026-10-09.json': strToU8('[]') };
     const otherEntries: Record<string, Uint8Array>[] = [{ 'export.xml': strToU8(xml) }, { 'Google Health/Physical Activity_GoogleData/daily_resting_heart_rate.csv': strToU8('timestamp,beats per minute\n') }];

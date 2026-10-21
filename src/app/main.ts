@@ -8,7 +8,7 @@ import HealthProcessorWorker from '../workers/healthProcessor.worker.ts?worker&i
 const strings = {
   en: {
     privacy: 'Your file is processed on this computer. Nothing is uploaded; this app works offline.',
-    file: 'Apple Health XML / ZIP, Google/Fitbit, Garmin or Samsung ZIP', period: 'Period (last 28 days)', start: 'Start date', end: 'End date',
+    file: 'Apple Health XML / ZIP, Google/Fitbit, Garmin, Samsung or WHOOP ZIP', period: 'Period (last 28 days)', start: 'Start date', end: 'End date',
     periodHint: 'Choose an end date. The start date is set automatically, including 28 calendar days.',
     zone: 'Time zone for step totals', zoneHint: 'Choose the time zone where the data was recorded. Existing daily summaries and sleep date labels are kept as exported.',
     data: 'Measurements', locked: '(locked)', unlocked: '(editable)', lockHint: 'Hold this box for five seconds to change the measurements.',
@@ -20,7 +20,7 @@ const strings = {
   },
   nl: {
     privacy: 'Uw bestand wordt op deze computer verwerkt. Er wordt niets geüpload; deze app werkt offline.',
-    file: 'Apple Health XML / ZIP, Google/Fitbit-, Garmin- of Samsung-ZIP', period: 'Periode (laatste 28 dagen)', start: 'Startdatum', end: 'Einddatum',
+    file: 'Apple Health XML / ZIP, Google/Fitbit-, Garmin-, Samsung- of WHOOP-ZIP', period: 'Periode (laatste 28 dagen)', start: 'Startdatum', end: 'Einddatum',
     periodHint: 'Kies een einddatum. De startdatum wordt automatisch ingesteld: 28 kalenderdagen inclusief de einddatum.',
     zone: 'Tijdzone voor stappentotalen', zoneHint: 'Kies de tijdzone waarin de gegevens zijn gemeten. Datums van dagsamenvattingen en slaap blijven zoals geëxporteerd.',
     data: 'Gegevens', locked: '(vergrendeld)', unlocked: '(aanpasbaar)', lockHint: 'Houd dit vak vijf seconden ingedrukt om de gegevenskeuze aan te passen.',
@@ -159,6 +159,9 @@ function warningText(w: ImportWarning): string {
     duplicate_sleep: ['Repeated sleep records with matching durations were counted once.', 'Herhaalde slaaprecords met dezelfde slaapduur zijn eenmaal meegeteld.'],
     missing_baseline: ['Temperature deviation is blank where the baseline is missing.', 'Het temperatuurverschil is leeg waar de baseline ontbreekt.'],
     apple_no_baseline: ['Apple XML does not provide a baseline through this importer. Temperature deviation remains blank.', 'Deze importer haalt geen baseline uit Apple XML. Het temperatuurverschil blijft leeg.'],
+    whoop_no_steps: ['The supported WHOOP CSV datasets contain no step counts. Steps remain blank.', 'De ondersteunde WHOOP-CSV-datasets bevatten geen stappenaantallen. Stappen blijven leeg.'],
+    whoop_no_baseline: ['WHOOP provides absolute skin temperature without a baseline. Temperature deviation remains blank.', 'WHOOP bevat absolute huidtemperatuur zonder baseline. Het temperatuurverschil blijft leeg.'],
+    whoop_sleep_fallback: ['WHOOP sleeps.csv is missing. Main-sleep durations from physiological_cycles.csv were used; naps are unavailable.', 'WHOOP sleeps.csv ontbreekt. De hoofdslaapduur uit physiological_cycles.csv is gebruikt; dutjes ontbreken.'],
     garmin_no_absolute_temperature: ['Garmin summaries provide nightly skin-temperature deviation, not absolute temperature. Nightly temperature remains blank.', 'Garmin-samenvattingen bevatten het nachtelijke huidtemperatuurverschil, geen absolute temperatuur. Nachttemperatuur blijft leeg.'],
     garmin_sleep_window_mismatch: ['Some Garmin sleep durations exceed their timestamp windows. Exported sleep-stage/nap durations were retained.', 'Sommige Garmin-slaapduren zijn langer dan hun tijdvenster. De geëxporteerde duur van slaapfasen/dutjes is behouden.'],
     samsung_no_resting_heart_rate: ['These Samsung datasets do not provide an explicit daily resting-heart-rate summary. Resting heart rate stays blank; ordinary or sleeping heart rate is not substituted.', 'Deze Samsung-datasets bevatten geen expliciete dagsamenvatting van de rusthartslag. Rusthartslag blijft leeg; gewone hartslag of slaaphartslag wordt niet gebruikt als vervanging.'],
