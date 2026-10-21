@@ -3,6 +3,7 @@ import { createDailySummary, addRecordToDailySummary, createDailySummaryRows } f
 import { AppleHealthXmlRecordParser } from './xmlRecordParser';
 import { GoogleHealthImporter } from './googleHealthImporter';
 import { GarminHealthImporter } from './garminHealthImporter';
+import { SamsungHealthImporter } from './samsungHealthImporter';
 import { intervalOverlapsDateRange, typeAndDateMatches, validateDateRange } from './filters';
 import type { CsvSummaryRow } from './csv';
 import type { ImportWarning, ProcessingOptions, ProgressUpdate } from './models';
@@ -12,7 +13,7 @@ import { validateTimeZone } from './timeZone';
 export interface ProcessingResult {
   rows: CsvSummaryRow[];
   warnings: ImportWarning[];
-  platform: 'Apple Health' | 'Google/Fitbit' | 'Garmin';
+  platform: 'Apple Health' | 'Google/Fitbit' | 'Garmin' | 'Samsung Health';
   recordsMatched: number;
 }
 
@@ -32,6 +33,7 @@ export async function processHealthFile(file: File, options: ProcessingOptions,
   const decoder = new TextDecoder('utf-8', { fatal: true });
   const google = new GoogleHealthImporter(options);
   const garmin = new GarminHealthImporter(options);
+  const samsung = new SamsungHealthImporter(options);
   let appleFound = false;
   let matched = 0;
   let xmlFinished = false;
@@ -64,15 +66,15 @@ export async function processHealthFile(file: File, options: ProcessingOptions,
       if (/(?:^|\/)export\.xml$/i.test(path)) {
         if (appleFound) throw new Error('Multiple export.xml files found. Select one export.xml directly.');
         appleFound = true; xmlTotalBytes = entry.originalSize; consumer = appleConsumer;
-      } else consumer = google.consumerForEntry(path) ?? garmin.consumerForEntry(path);
+      } else consumer = google.consumerForEntry(path) ?? garmin.consumerForEntry(path) ?? samsung.consumerForEntry(path);
       if (consumer) {
         try { await consumeZipEntry(file, entry, consumer, isCancelled); }
         catch (e) { throw new Error(`${path}: ${e instanceof Error ? e.message : String(e)}`); }
       }
-      if (!appleFound) report({ phase: 'reading', bytesRead: index + 1, totalBytes: entries.length, recordsMatched: matched + google.recordsMatched + garmin.recordsMatched });
+      if (!appleFound) report({ phase: 'reading', bytesRead: index + 1, totalBytes: entries.length, recordsMatched: matched + google.recordsMatched + garmin.recordsMatched + samsung.recordsMatched });
     }
   } else {
-    if (!/\.xml$/i.test(file.name)) throw new Error('Choose an Apple XML or an Apple/Google/Fitbit/Garmin ZIP export.');
+    if (!/\.xml$/i.test(file.name)) throw new Error('Choose an Apple XML or an Apple/Google/Fitbit/Garmin/Samsung ZIP export.');
     appleFound = true;
     const chunkSize = 64 * 1024;
     for (let offset = 0; offset < file.size; offset += chunkSize) {
@@ -83,9 +85,11 @@ export async function processHealthFile(file: File, options: ProcessingOptions,
   }
   if (!file.size) throw new Error('The selected file is empty.');
   if (appleFound && google.recognizedEntries) throw new Error('This archive contains Apple and Google data. Export each platform separately.');
+  if (samsung.recognizedEntries && (appleFound || google.recognizedEntries || garmin.recognizedEntries)) throw new Error('This archive contains multiple wearable platforms. Export each platform separately.');
+  if (samsung.recognizedEntries) return { rows: samsung.finish(), warnings: samsung.warnings, platform: 'Samsung Health', recordsMatched: samsung.recordsMatched };
   if (garmin.recognizedEntries && (appleFound || google.recognizedEntries)) throw new Error('This archive contains multiple wearable platforms. Export each platform separately.');
   if (garmin.recognizedEntries) return { rows: garmin.finish(), warnings: garmin.warnings, platform: 'Garmin', recordsMatched: garmin.recordsMatched };
-  if (!appleFound && !google.recognizedEntries) throw new Error('No supported Apple Health, Google/Fitbit or Garmin daily-summary files found in this ZIP.');
+  if (!appleFound && !google.recognizedEntries) throw new Error('No supported Apple Health, Google/Fitbit, Garmin or Samsung summary files found in this ZIP.');
   if (!appleFound) return { rows: google.finish(), warnings: google.warnings, platform: 'Google/Fitbit', recordsMatched: google.recordsMatched };
   if (!xmlFinished) throw new Error('The Apple XML was not completely read.');
   const rows = createDailySummaryRows(summary, options.selectedTypes, options.startDate!, options.endDate!, timeZone).map((row) => ({

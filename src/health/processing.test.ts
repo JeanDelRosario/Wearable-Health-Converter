@@ -85,6 +85,21 @@ describe('end-to-end file processing', () => {
     expect(result.rows.every(r => !r.source?.includes('wrapper'))).toBe(true);
   });
 
+  it('detects Samsung exports and skips macOS resource forks and unrelated personal CSVs', async () => {
+    const csv = 'com.samsung.shealth.step_daily_trend,7006011,6\nday_time,source_type,count\n2026-09-20 00:00:00.000,-2,123,\n';
+    const zip = zipSync({
+      'wrapper/com.samsung.shealth.step_daily_trend.20261011202615.csv': strToU8(csv),
+      '__MACOSX/._com.samsung.shealth.step_daily_trend.20261011202615.csv': new Uint8Array([0, 1, 255]),
+      'com.samsung.health.user_profile.20261011202615.csv': strToU8('private invalid data')
+    });
+    const result = await processHealthFile(new File([zip], 'Samsung.zip'), options);
+    expect(result.platform).toBe('Samsung Health');
+    expect(find(result, 'Steps').value).toBe('123');
+    expect(result.rows).toHaveLength(168);
+    const mixed = zipSync({ 'com.samsung.shealth.step_daily_trend.csv': strToU8(csv), 'export.xml': strToU8(xml) });
+    await expect(processHealthFile(new File([mixed], 'mixed.zip'), options)).rejects.toThrow('multiple wearable platforms');
+  });
+
   it('rejects Garmin mixed with Apple or Google and archives without supported daily summaries', async () => {
     const garminEntry = { 'DI_CONNECT/DI-Connect-Aggregator/UDSFile_2026-07-01_2026-10-09.json': strToU8('[]') };
     const otherEntries: Record<string, Uint8Array>[] = [{ 'export.xml': strToU8(xml) }, { 'Google Health/Physical Activity_GoogleData/daily_resting_heart_rate.csv': strToU8('timestamp,beats per minute\n') }];

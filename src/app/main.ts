@@ -8,7 +8,7 @@ import HealthProcessorWorker from '../workers/healthProcessor.worker.ts?worker&i
 const strings = {
   en: {
     privacy: 'Your file is processed on this computer. Nothing is uploaded; this app works offline.',
-    file: 'Apple Health XML / ZIP, Google/Fitbit ZIP or Garmin ZIP', period: 'Period (last 28 days)', start: 'Start date', end: 'End date',
+    file: 'Apple Health XML / ZIP, Google/Fitbit, Garmin or Samsung ZIP', period: 'Period (last 28 days)', start: 'Start date', end: 'End date',
     periodHint: 'Choose an end date. The start date is set automatically, including 28 calendar days.',
     zone: 'Time zone for step totals', zoneHint: 'Choose the time zone where the data was recorded. Existing daily summaries and sleep date labels are kept as exported.',
     data: 'Measurements', locked: '(locked)', unlocked: '(editable)', lockHint: 'Hold this box for five seconds to change the measurements.',
@@ -20,7 +20,7 @@ const strings = {
   },
   nl: {
     privacy: 'Uw bestand wordt op deze computer verwerkt. Er wordt niets geüpload; deze app werkt offline.',
-    file: 'Apple Health XML / ZIP, Google/Fitbit ZIP of Garmin ZIP', period: 'Periode (laatste 28 dagen)', start: 'Startdatum', end: 'Einddatum',
+    file: 'Apple Health XML / ZIP, Google/Fitbit-, Garmin- of Samsung-ZIP', period: 'Periode (laatste 28 dagen)', start: 'Startdatum', end: 'Einddatum',
     periodHint: 'Kies een einddatum. De startdatum wordt automatisch ingesteld: 28 kalenderdagen inclusief de einddatum.',
     zone: 'Tijdzone voor stappentotalen', zoneHint: 'Kies de tijdzone waarin de gegevens zijn gemeten. Datums van dagsamenvattingen en slaap blijven zoals geëxporteerd.',
     data: 'Gegevens', locked: '(vergrendeld)', unlocked: '(aanpasbaar)', lockHint: 'Houd dit vak vijf seconden ingedrukt om de gegevenskeuze aan te passen.',
@@ -161,6 +161,12 @@ function warningText(w: ImportWarning): string {
     apple_no_baseline: ['Apple XML does not provide a baseline through this importer. Temperature deviation remains blank.', 'Deze importer haalt geen baseline uit Apple XML. Het temperatuurverschil blijft leeg.'],
     garmin_no_absolute_temperature: ['Garmin summaries provide nightly skin-temperature deviation, not absolute temperature. Nightly temperature remains blank.', 'Garmin-samenvattingen bevatten het nachtelijke huidtemperatuurverschil, geen absolute temperatuur. Nachttemperatuur blijft leeg.'],
     garmin_sleep_window_mismatch: ['Some Garmin sleep durations exceed their timestamp windows. Exported sleep-stage/nap durations were retained.', 'Sommige Garmin-slaapduren zijn langer dan hun tijdvenster. De geëxporteerde duur van slaapfasen/dutjes is behouden.'],
+    samsung_no_resting_heart_rate: ['These Samsung datasets do not provide an explicit daily resting-heart-rate summary. Resting heart rate stays blank; ordinary or sleeping heart rate is not substituted.', 'Deze Samsung-datasets bevatten geen expliciete dagsamenvatting van de rusthartslag. Rusthartslag blijft leeg; gewone hartslag of slaaphartslag wordt niet gebruikt als vervanging.'],
+    samsung_hrv_summary_only: ['Samsung HRV uses numeric sleeping-HRV summaries from Energy Score (vitality_score), where available. Its calculation method is not specified in the export.', 'Samsung-HRV gebruikt waar beschikbaar de numerieke slaap-HRV-samenvatting van Energy Score (vitality_score). De berekeningsmethode staat niet in de export.'],
+    samsung_hrv_raw_unavailable: ['Raw Samsung HRV records reference separate JSON data and are not imported. Numeric Energy Score summaries are used where available.', 'Ruwe Samsung-HRV-records verwijzen naar aparte JSON-data en worden niet geïmporteerd. Numerieke Energy Score-samenvattingen worden gebruikt waar beschikbaar.'],
+    samsung_revised_steps: ['The latest updated Samsung combined daily step total was used where older revisions differ.', 'Bij afwijkende oudere versies is het laatst bijgewerkte gecombineerde Samsung-stappentotaal gebruikt.'],
+    samsung_sleep_stages_missing: ['Some Samsung sleep sessions have no included stage records. Sleep duration includes only sessions with stage data; time in bed is not substituted.', 'Sommige Samsung-slaapsessies bevatten geen slaapfasen. De slaapduur bevat alleen sessies met fasegegevens; tijd in bed wordt niet als vervanging gebruikt.'],
+    samsung_timezone_fallback: ['Some Samsung time offsets were missing or invalid. The selected time zone was used to group those measurements.', 'Sommige Samsung-tijdzoneverschuivingen ontbreken of zijn ongeldig. Deze metingen zijn ingedeeld met de geselecteerde tijdzone.'],
     legacy_no_baseline: ['Legacy computed temperature has no explicit baseline. Temperature deviation remains blank.', 'De oudere temperatuursamenvatting bevat geen expliciete baseline. Het temperatuurverschil blijft leeg.'],
     invalid_records: ['Invalid or missing measurements were excluded.', 'Ongeldige of ontbrekende metingen zijn uitgesloten.'],
     conflicting_values: ['Conflicting values were found. Affected daily values are blank.', 'Er zijn tegenstrijdige waarden gevonden. De betreffende dagwaarden zijn leeg.'],
